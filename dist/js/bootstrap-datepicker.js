@@ -1,8 +1,22 @@
-/*!
- * Datepicker for Bootstrap v1.7.1 (https://github.com/uxsolutions/bootstrap-datepicker)
+
+/* =========================================================
+ * bootstrap-datepicker.js
+ * Repo: https://github.com/uxsolutions/bootstrap-datepicker/
+ * Demo: https://eternicode.github.io/bootstrap-datepicker/
+ * Docs: https://bootstrap-datepicker.readthedocs.org/
+ * =========================================================
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Licensed under the Apache License v2.0 (http://www.apache.org/licenses/LICENSE-2.0)
- */
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * ========================================================= */
 
 (function(factory){
     if (typeof define === "function" && define.amd) {
@@ -106,12 +120,26 @@
 		this.picker = $(DPGlobal.template);
 
 		// Checking templates and inserting
-		if (this._check_template(this.o.templates.leftArrow)) {
-			this.picker.find('.prev').html(this.o.templates.leftArrow);
-		}
-
-		if (this._check_template(this.o.templates.rightArrow)) {
-			this.picker.find('.next').html(this.o.templates.rightArrow);
+		if (this.o.showYearArrows) {
+            if (this._check_template(this.o.templates.singleLeftArrow)) {
+                this.picker.find('.prev').html(this.o.templates.singleLeftArrow);
+            }
+            if (this._check_template(this.o.templates.singleRightArrow)) {
+                this.picker.find('.next').html(this.o.templates.singleRightArrow);
+            }
+            if (this._check_template(this.o.templates.leftArrow)) {
+                this.picker.find('.prevy').html(this.o.templates.leftArrow);
+            }
+            if (this._check_template(this.o.templates.rightArrow)) {
+                this.picker.find('.nexty').html(this.o.templates.rightArrow);
+            }
+		} else {
+            if (this._check_template(this.o.templates.leftArrow)) {
+                this.picker.find('.prev').html(this.o.templates.leftArrow);
+            }
+            if (this._check_template(this.o.templates.rightArrow)) {
+                this.picker.find('.next').html(this.o.templates.rightArrow);
+            }
 		}
 
 		this._buildEvents();
@@ -403,6 +431,9 @@
 				}],
 				[this.picker, '.prev, .next', {
 					click: $.proxy(this.navArrowsClick, this)
+				}],
+				[this.picker, '.prevy, .nexty', {
+					click: $.proxy(this.navYearArrowsClick, this)
 				}],
 				[this.picker, '.day:not(.disabled)', {
 					click: $.proxy(this.dayCellClick, this)
@@ -1139,11 +1170,15 @@
 				endMonth = this.o.endDate !== Infinity ? this.o.endDate.getUTCMonth() : Infinity,
 				prevIsDisabled,
 				nextIsDisabled,
+				prevYIsDisabled,
+				nextYIsDisabled,
 				factor = 1;
 			switch (this.viewMode){
 				case 0:
 					prevIsDisabled = year <= startYear && month <= startMonth;
 					nextIsDisabled = year >= endYear && month >= endMonth;
+					prevIsDisabled = year <= startYear;
+					nextIsDisabled = year >= endYear;
 					break;
 				case 4:
 					factor *= 10;
@@ -1157,11 +1192,15 @@
 				case 1:
 					prevIsDisabled = Math.floor(year / factor) * factor <= startYear;
 					nextIsDisabled = Math.floor(year / factor) * factor + factor >= endYear;
+					prevYIsDisabled = true;
+					nextYIsDisabled = true;
 					break;
 			}
 
 			this.picker.find('.prev').toggleClass('disabled', prevIsDisabled);
 			this.picker.find('.next').toggleClass('disabled', nextIsDisabled);
+			this.picker.find('.prevy').toggleClass('disabled', prevYIsDisabled);
+			this.picker.find('.nexty').toggleClass('disabled', nextYIsDisabled);
 		},
 
 		click: function(e){
@@ -1248,6 +1287,15 @@
 				dir *= DPGlobal.viewModes[this.viewMode].navStep * 12;
 			}
 			this.viewDate = this.moveMonth(this.viewDate, dir);
+			this._trigger(DPGlobal.viewModes[this.viewMode].e, this.viewDate);
+			this.fill();
+		},
+
+		// Clicked on prevy or nexty
+		navYearArrowsClick: function(e){
+			var $target = $(e.currentTarget);
+			var dir = $target.hasClass('prevy') ? -1 : 1;
+			this.viewDate = this.moveYear(this.viewDate, dir);
 			this._trigger(DPGlobal.viewModes[this.viewMode].e, this.viewDate);
 			this.fill();
 		},
@@ -1705,9 +1753,12 @@
 		title: '',
 		templates: {
 			leftArrow: '&#x00AB;',
-			rightArrow: '&#x00BB;'
+			rightArrow: '&#x00BB;',
+			singleLeftArrow: '&#x2039;',
+			singleRightArrow: '&#x203A;'
 		},
-    showWeekDays: true
+    showWeekDays: true,
+    showYearArrows: false
 	};
 	var locale_opts = $.fn.datepicker.locale_opts = [
 		'format',
@@ -1927,16 +1978,27 @@
 			}
 			return date.join('');
 		},
-		headTemplate: '<thead>'+
-			              '<tr>'+
-			                '<th colspan="7" class="datepicker-title"></th>'+
-			              '</tr>'+
-							'<tr>'+
-								'<th class="prev">'+defaults.templates.leftArrow+'</th>'+
-								'<th colspan="5" class="datepicker-switch"></th>'+
-								'<th class="next">'+defaults.templates.rightArrow+'</th>'+
-							'</tr>'+
-						'</thead>',
+		headTemplate: function() {
+            var head =  '<thead>'+
+                          '<tr>'+
+                            '<th colspan="7" class="datepicker-title"></th>'+
+                          '</tr>'+
+                          '<tr>';
+            if (this.o.showYearArrows) {
+                head +=     '<th class="prevy">'+defaults.templates.leftArrow+'</th>'+
+                            '<th class="prev">'+defaults.templates.singleLeftArrow+'</th>'+
+                            '<th colspan="3" class="datepicker-switch"></th>'+
+                            '<th class="next">'+defaults.templates.singleRightArrow+'</th>'+
+                            '<th class="nexty">'+defaults.templates.rightArrow+'</th>'
+            } else {
+                head +=     '<th class="prev">'+defaults.templates.leftArrow+'</th>'+
+                            '<th colspan="5" class="datepicker-switch"></th>'+
+                            '<th class="next">'+defaults.templates.rightArrow+'</th>'
+            }
+            head +=       '</tr>'+
+                        '</thead>';
+            return head;
+		},
 		contTemplate: '<tbody><tr><td colspan="7"></td></tr></tbody>',
 		footTemplate: '<tfoot>'+
 							'<tr>'+
